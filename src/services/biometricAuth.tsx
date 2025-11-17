@@ -1,9 +1,8 @@
 import ReactNativeBiometrics from "react-native-biometrics";
-import * as Keychain from "react-native-keychain";
 
 const rnBiometrics = new ReactNativeBiometrics();
 
-export async function verifyBiometricAndGetToken(): Promise<string> {
+export async function verifyBiometric(): Promise<boolean> {
   const { available } = await rnBiometrics.isSensorAvailable();
 
   if (!available) {
@@ -18,11 +17,5 @@ export async function verifyBiometricAndGetToken(): Promise<string> {
     throw new Error("Authentication failed");
   }
 
-  const creds = await Keychain.getGenericPassword();
-  if (!creds) {
-    throw new Error("No session found");
-  }
-
-  const saved = JSON.parse(creds.password);
-  return saved.token;
+  return true;
 }

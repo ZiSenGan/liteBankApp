@@ -1,5 +1,5 @@
-import { ActivityIndicator, Modal, View, StyleSheet } from "react-native";
-import React from "react";
+import { ActivityIndicator, Modal, View, StyleSheet } from 'react-native';
+import React from 'react';
 
 let setVisible: (v: boolean) => void;
 
@@ -25,12 +25,12 @@ export const hideLoading = () => setVisible(false);
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   box: {
-    backgroundColor: "#333",
+    backgroundColor: '#333',
     padding: 20,
     borderRadius: 12,
   },

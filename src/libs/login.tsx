@@ -1,5 +1,5 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useState } from 'react';
 import {
   Image,
   Keyboard,
@@ -12,48 +12,47 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-} from "react-native";
-import { RootStackParamList } from "../types";
-import api from "../services/axios";
+} from 'react-native';
+import { RootStackParamList } from '../types';
+import api from '../services/axios';
 import { showLoading, hideLoading } from '../components/LoadingScreen';
-import { useAuthStore } from "../store/useAuthStore";
+import { useAuthStore } from '../store/useAuthStore';
+import { LoginResponse } from '../mocks/types';
 
-type Props = NativeStackScreenProps<RootStackParamList, "Login">;
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function Login({ navigation }: Props) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
-  const {
-    setToken,
-  } = useAuthStore();
+  const { setToken, setCustomerName } = useAuthStore();
 
   const onSubmit = async () => {
     showLoading();
     try {
-      const res = await api.post("/login", {
+      const res = await api.post('/login', {
         username,
-        password
+        password,
       });
 
-      setToken(res.data.token);
+      const data: LoginResponse = res.data;
 
-      console.log("Login success:", res.data);
-      navigation.navigate("Home");
+      setToken(data.token);
+      setCustomerName(data.customerName);
 
+      console.log('Login success:', res.data);
+      navigation.navigate('Home');
     } catch (err) {
-      console.error("Login failed:", err);
+      console.error('Login failed:', err);
     } finally {
       hideLoading();
     }
   };
 
-  
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"} // iOS uses padding, Android adjusts height
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // iOS uses padding, Android adjusts height
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
@@ -65,7 +64,7 @@ export default function Login({ navigation }: Props) {
             <View style={styles.imageContainer}>
               <Image
                 style={styles.image}
-                source={require("../../assets/images/react-logo.png")}
+                source={require('../../assets/images/react-logo.png')}
               />
             </View>
 
@@ -98,7 +97,7 @@ export default function Login({ navigation }: Props) {
           <TouchableOpacity
             style={styles.button}
             onPress={onSubmit}
-            disabled={password === "" && username === ""}
+            disabled={password === '' && username === ''}
           >
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
@@ -111,16 +110,16 @@ export default function Login({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
   },
   imageContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 30,
   },
   image: {
@@ -128,30 +127,30 @@ const styles = StyleSheet.create({
     height: 120,
   },
   form: {
-    width: "100%",
+    width: '100%',
     gap: 16,
   },
   labelInput: {
-    width: "100%",
+    width: '100%',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
     padding: 10,
     marginTop: 6,
   },
   button: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#0F52BA",
+    backgroundColor: '#0F52BA',
     padding: 16,
-    alignItems: "center",
+    alignItems: 'center',
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

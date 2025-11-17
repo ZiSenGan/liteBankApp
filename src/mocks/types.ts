@@ -1,9 +1,30 @@
-import { Transaction } from "../types";
+export interface FromAccountList {
+  label: string;
+  value: string;
+}
+export interface Transaction {
+  id: number;
+  title: string;
+  amount: number;
+  date: string;
+}
 
 export type LoginRequestParam = {
   username: string; 
   password: string;
 }
+
+export interface LoginResponse {
+  token: string;
+  customerName: string;
+}
+
+export type Account = {
+  id: number;
+  name: string;
+  balance: number;
+  accountNo: string;
+};
 
 export interface TransactionResponse {
   page: number;
@@ -12,3 +33,10 @@ export interface TransactionResponse {
   data: Transaction[];
   hasMore: boolean;
 }
+
+export type TransferRequestParam = {
+  fromAccount: string;
+  recipient: string;
+  amount: string;
+  note?: string;
+};

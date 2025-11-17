@@ -1,6 +1,6 @@
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React from "react";
-import { Controller, useForm } from "react-hook-form";
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   Alert,
   Keyboard,
@@ -13,14 +13,16 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { RootStackParamList } from "../types";
-import { verifyBiometricAndGetToken } from "../services/biometricAuth";
-import { Dropdown } from "react-native-element-dropdown";
-import { fromAccountList } from "../data/mockData";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootStackParamList } from '../types';
+import { verifyBiometric } from '../services/biometricAuth';
+import { Dropdown } from 'react-native-element-dropdown';
+import api from '../services/axios';
+import { hideLoading, showLoading } from '../components/LoadingScreen';
+import { useFromAccounts } from '../services/useHooks';
 
-type Props = NativeStackScreenProps<RootStackParamList, "Transfer">;
+type Props = NativeStackScreenProps<RootStackParamList, 'Transfer'>;
 
 type FormData = {
   fromAccount: string;
@@ -38,57 +40,75 @@ export default function TransferScreen({ navigation }: Props) {
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
-      fromAccount: "",
-      recipient: "",
-      amount: "",
-      note: "",
+      fromAccount: '',
+      recipient: '',
+      amount: '',
+      note: '',
     },
   });
+
+  const { data: fromAccountList, isLoading } = useFromAccounts();
+
+  if (isLoading) return <Text>Loading accounts...</Text>;
 
   const onSubmit = async (data: FormData) => {
     const amt = parseFloat(data.amount);
 
     if (amt > balance) {
-      Alert.alert("Error", "Insufficient balance.");
+      Alert.alert('Error', 'Insufficient balance.');
       return;
     }
 
     try {
-      // Step 1: Biometric authentication + get token
-      const token = await verifyBiometricAndGetToken();
+      // Step 1: Biometric authentication
+      const isVerified = await verifyBiometric();
 
       // Step 2: Confirm transfer
       Alert.alert(
-        "Confirm Transfer",
+        'Confirm Transfer',
         `Send $${amt.toFixed(2)} to ${data.recipient}?`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: 'Cancel', style: 'cancel' },
           {
-            text: "Confirm",
-            onPress: () => {
-              // TODO: Call backend API with token
-              console.log("Using token:", token);
-              Alert.alert("Success", "Transfer completed!");
+            text: 'Confirm',
+            onPress: async () => {
+              console.log('Biometric verification: ', isVerified);
+
+              showLoading();
+              try {
+                const res = await api.post('/transfer', data);
+                Alert.alert('Success', res.data.message);
+                console.log('Transaction:', res.data.transaction);
+              } catch (err: any) {
+                Alert.alert(
+                  'Failed',
+                  err.response?.data?.message || err.message,
+                );
+              } finally {
+                hideLoading();
+              }
+
+              Alert.alert('Success', 'Transfer completed!');
               navigation.goBack();
             },
           },
-        ]
+        ],
       );
     } catch (error: any) {
-      Alert.alert("Authentication Failed", error.message || "Cannot proceed");
+      Alert.alert('Authentication Failed', error.message || 'Cannot proceed');
     }
   };
 
-  const formattedFromAccountList = fromAccountList.map(item => ({
+  const formattedFromAccountList = (fromAccountList ?? []).map(item => ({
     ...item,
-    labelCombined: `${item.label} - ${item.value}`
+    labelCombined: `${item.name} - ${item.balance}`,
   }));
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.container}>
@@ -100,17 +120,17 @@ export default function TransferScreen({ navigation }: Props) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>From Account:</Text>
-              <Controller 
+              <Controller
                 control={control}
                 name="fromAccount"
-                rules={{ required: "* From Account is required" }}
+                rules={{ required: '* From Account is required' }}
                 render={({ field: { onChange, value } }) => (
-                  <Dropdown 
+                  <Dropdown
                     style={styles.input}
                     data={formattedFromAccountList}
-                    labelField={"labelCombined"}
+                    labelField={'labelCombined'}
                     onChange={onChange}
-                    valueField={"value"}
+                    valueField={'value'}
                     value={value}
                     placeholder="Select"
                   />
@@ -127,7 +147,7 @@ export default function TransferScreen({ navigation }: Props) {
               <Controller
                 control={control}
                 name="recipient"
-                rules={{ required: "* Recipient is required" }}
+                rules={{ required: '* Recipient is required' }}
                 render={({ field: { onChange, value } }) => (
                   <TextInput
                     style={styles.input}
@@ -149,13 +169,13 @@ export default function TransferScreen({ navigation }: Props) {
                 control={control}
                 name="amount"
                 rules={{
-                  required: "* Amount is required",
+                  required: '* Amount is required',
                   pattern: {
                     value: /^[0-9]*\.?[0-9]+$/,
-                    message: "Enter a valid number",
+                    message: 'Enter a valid number',
                   },
-                  validate: (value) =>
-                    parseFloat(value) > 0 || "Amount must be greater than 0",
+                  validate: value =>
+                    parseFloat(value) > 0 || 'Amount must be greater than 0',
                 }}
                 render={({ field: { onChange, value } }) => (
                   <TextInput
@@ -210,38 +230,38 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   balanceContainer: {
-    backgroundColor: "#0F52BA",
+    backgroundColor: '#0F52BA',
     padding: 20,
     borderRadius: 10,
   },
-  balanceLabel: { color: "#fff", fontSize: 16 },
+  balanceLabel: { color: '#fff', fontSize: 16 },
   balanceValue: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginTop: 5,
   },
-  inputGroup: { 
-    // marginBottom: 15 
+  inputGroup: {
+    // marginBottom: 15
   },
-  label: { marginBottom: 6, fontWeight: "500" },
+  label: { marginBottom: 6, fontWeight: '500' },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
     padding: 12,
   },
-  error: { color: "red", marginTop: 4 },
+  error: { color: 'red', marginTop: 4 },
   button: {
-    backgroundColor: "#0F52BA",
+    backgroundColor: '#0F52BA',
     padding: 16,
     borderRadius: 10,
     marginTop: 20,
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    textAlign: "center",
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
     fontSize: 16,
   },
 });

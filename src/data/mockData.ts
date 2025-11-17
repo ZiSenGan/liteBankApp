@@ -1,9 +1,10 @@
-import { Account, FromAccountList, Transaction } from "../types";
+import { Account, FromAccountList, Transaction } from "../mocks/types";
 
 export const account: Account = {
+  id: 1,
   name: "Zi Sen",
   balance: 4321.75,
-  accountNumber: "123-456-789",
+  accountNo: "123-456-789",
 };
 
 export const transactions: Transaction[] = [
