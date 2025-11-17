@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   Alert,
@@ -18,9 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../types';
 import { verifyBiometric } from '../services/biometricAuth';
 import { Dropdown } from 'react-native-element-dropdown';
-import api from '../services/axios';
 import { hideLoading, showLoading } from '../components/LoadingScreen';
-import { useFromAccounts } from '../services/useHooks';
+import { useFromAccounts, useTransfer } from '../services/useHooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Transfer'>;
 
@@ -32,12 +31,13 @@ type FormData = {
 };
 
 export default function TransferScreen({ navigation }: Props) {
-  const balance = 1000; // example balance
+  const [balance, setBalance] = useState<number>(0);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<FormData>({
     defaultValues: {
       fromAccount: '',
@@ -57,7 +57,26 @@ export default function TransferScreen({ navigation }: Props) {
     }
   }, [isLoading, isFetching]);
 
+  const transferMutation = useTransfer({
+    onMutate() {
+      showLoading();
+    },
+    onSuccess(res) {
+      console.log('Transaction:', res.data);
+      Alert.alert('Success', 'Transfer completed!');
+      navigation.goBack();
+    },
+    onError(err) {
+      Alert.alert('Failed', err.response?.data?.message || err.message);
+    },
+    onSettled() {
+      hideLoading();
+    },
+  });
+
   const onSubmit = async (data: FormData) => {
+    console.log('Form Data', data);
+
     const amt = parseFloat(data.amount);
 
     if (amt > balance) {
@@ -79,23 +98,7 @@ export default function TransferScreen({ navigation }: Props) {
             text: 'Confirm',
             onPress: async () => {
               console.log('Biometric verification: ', isVerified);
-
-              showLoading();
-              try {
-                const res = await api.post('/transfer', data);
-                Alert.alert('Success', res.data.message);
-                console.log('Transaction:', res.data.transaction);
-              } catch (err: any) {
-                Alert.alert(
-                  'Failed',
-                  err.response?.data?.message || err.message,
-                );
-              } finally {
-                hideLoading();
-              }
-
-              Alert.alert('Success', 'Transfer completed!');
-              navigation.goBack();
+              transferMutation.mutate(data);
             },
           },
         ],
@@ -103,6 +106,13 @@ export default function TransferScreen({ navigation }: Props) {
     } catch (error: any) {
       Alert.alert('Authentication Failed', error.message || 'Cannot proceed');
     }
+  };
+
+  const getBalance = (accountNo: string) => {
+    setBalance(
+      formattedFromAccountList.find(item => item.accountNo === accountNo)
+        ?.balance ?? 0,
+    );
   };
 
   const formattedFromAccountList = (fromAccountList ?? []).map(item => ({
@@ -118,11 +128,8 @@ export default function TransferScreen({ navigation }: Props) {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.container}>
-            {/* Account Balance */}
-            <View style={styles.balanceContainer}>
-              <Text style={styles.balanceLabel}>Current Balance</Text>
-              <Text style={styles.balanceValue}>${balance.toFixed(2)}</Text>
-            </View>
+            <Text style={styles.sectionTitle}>Transfer Details</Text>
+            <View style={styles.divider} />
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>From Account:</Text>
@@ -135,8 +142,11 @@ export default function TransferScreen({ navigation }: Props) {
                     style={styles.input}
                     data={formattedFromAccountList}
                     labelField={'labelCombined'}
-                    onChange={onChange}
-                    valueField={'value'}
+                    onChange={item => {
+                      onChange(item.accountNo);
+                      getBalance(item.accountNo);
+                    }}
+                    valueField={'accountNo'}
                     value={value}
                     placeholder="Select"
                   />
@@ -146,8 +156,17 @@ export default function TransferScreen({ navigation }: Props) {
                 <Text style={styles.error}>{errors.fromAccount.message}</Text>
               )}
             </View>
+            {watch('fromAccount') && (
+              <View style={styles.accountInfoBox}>
+                <Text style={styles.accountInfo}>
+                  Balance: RM{balance.toFixed(2)}
+                </Text>
+                <Text style={styles.accountInfo}>
+                  Available: RM{balance.toFixed(2)}
+                </Text>
+              </View>
+            )}
 
-            {/* Recipient */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Recipient:</Text>
               <Controller
@@ -168,7 +187,6 @@ export default function TransferScreen({ navigation }: Props) {
               )}
             </View>
 
-            {/* Amount */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Amount:</Text>
               <Controller
@@ -198,7 +216,6 @@ export default function TransferScreen({ navigation }: Props) {
               )}
             </View>
 
-            {/* Note */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Note (optional):</Text>
               <Controller
@@ -215,7 +232,6 @@ export default function TransferScreen({ navigation }: Props) {
               />
             </View>
 
-            {/* Submit Button */}
             <TouchableOpacity
               style={styles.button}
               onPress={handleSubmit(onSubmit)}
@@ -235,17 +251,23 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 20,
   },
-  balanceContainer: {
-    backgroundColor: '#0F52BA',
-    padding: 20,
-    borderRadius: 10,
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 10,
   },
-  balanceLabel: { color: '#fff', fontSize: 16 },
-  balanceValue: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
+  divider: {
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  accountInfoBox: {
+    backgroundColor: '#F6F8FA',
+    padding: 12,
+    borderRadius: 8,
     marginTop: 5,
+  },
+  accountInfo: {
+    color: '#333',
   },
   inputGroup: {
     // marginBottom: 15

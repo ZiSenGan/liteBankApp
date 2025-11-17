@@ -40,3 +40,12 @@ export type TransferRequestParam = {
   amount: string;
   note?: string;
 };
+
+export type TransferResponse = {
+  id: number;
+  fromAccount: string;
+  recipient: string;
+  amount: string;
+  note?: string;
+  date: string;
+}

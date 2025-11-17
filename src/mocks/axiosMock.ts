@@ -6,6 +6,7 @@ import {
   Transaction,
   TransactionResponse,
   TransferRequestParam,
+  TransferResponse,
 } from './types';
 
 const mock = new MockAdapter(api, { delayResponse: 500 });
@@ -24,12 +25,6 @@ mock.onPost('/login').reply(config => {
   }
 
   return [401, { message: 'Invalid credentials' }];
-});
-
-mock.onGet('/profile').reply(200, {
-  id: 1,
-  name: 'Mock User',
-  email: 'mock@example.com',
 });
 
 const account: Account = {
@@ -58,6 +53,7 @@ const transactions: Transaction[] = Array.from({ length: 45 }).map(
   },
 );
 
+// Mock Get /transactions
 mock.onGet('/transactions').reply(config => {
   const page = Number(config.params?.page ?? 1);
   const pageSize = Number(config.params?.pageSize ?? 10);
@@ -76,6 +72,7 @@ mock.onGet('/transactions').reply(config => {
   return [200, response];
 });
 
+// Mock Post /tranfer
 mock.onPost('/transfer').reply(config => {
   try {
     const data: TransferRequestParam = JSON.parse(config.data);
@@ -90,16 +87,18 @@ mock.onPost('/transfer').reply(config => {
       return [400, { message: 'Amount must be greater than 0' }];
     }
 
+    const response: TransferResponse = {
+      id: Date.now(),
+      ...data,
+      date: new Date().toISOString(),
+    }
+
     return [
       200,
       {
         status: 'success',
         message: `Transferred ${data.amount} from ${data.fromAccount} to ${data.recipient}`,
-        transaction: {
-          id: Date.now(),
-          ...data,
-          date: new Date().toISOString(),
-        },
+        response
       },
     ];
   } catch (error) {

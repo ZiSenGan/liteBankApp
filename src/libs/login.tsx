@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
+  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -14,10 +15,9 @@ import {
   View,
 } from 'react-native';
 import { RootStackParamList } from '../types';
-import api from '../services/axios';
 import { showLoading, hideLoading } from '../components/LoadingScreen';
 import { useAuthStore } from '../store/useAuthStore';
-import { LoginResponse } from '../mocks/types';
+import { useLogin } from '../services/useHooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -27,26 +27,30 @@ export default function Login({ navigation }: Props) {
 
   const { setToken, setCustomerName } = useAuthStore();
 
-  const onSubmit = async () => {
-    showLoading();
-    try {
-      const res = await api.post('/login', {
-        username,
-        password,
-      });
-
-      const data: LoginResponse = res.data;
-
+  const loginMutation = useLogin({
+    onMutate() {
+      showLoading();
+    },
+    onSuccess({ data }) {
       setToken(data.token);
       setCustomerName(data.customerName);
-
-      console.log('Login success:', res.data);
+      console.log('Login success:', data);
       navigation.navigate('Home');
-    } catch (err) {
+    },
+    onError(err) {
       console.error('Login failed:', err);
-    } finally {
+      Alert.alert('Failed', err.response?.data?.message || err.message);
+    },
+    onSettled() {
       hideLoading();
-    }
+    },
+  });
+
+  const onSubmit = () => {
+    loginMutation.mutate({
+      username,
+      password,
+    });
   };
 
   return (
@@ -58,9 +62,8 @@ export default function Login({ navigation }: Props) {
         <View style={styles.container}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled" // allows tapping outside to dismiss keyboard
+            keyboardShouldPersistTaps="handled"
           >
-            {/* Logo */}
             <View style={styles.imageContainer}>
               <Image
                 style={styles.image}
@@ -68,7 +71,6 @@ export default function Login({ navigation }: Props) {
               />
             </View>
 
-            {/* Input fields */}
             <View style={styles.form}>
               <View style={styles.labelInput}>
                 <Text>Username:</Text>
@@ -93,7 +95,6 @@ export default function Login({ navigation }: Props) {
             </View>
           </ScrollView>
 
-          {/* Fixed bottom button */}
           <TouchableOpacity
             style={styles.button}
             onPress={onSubmit}
