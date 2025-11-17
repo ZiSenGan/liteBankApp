@@ -29,10 +29,13 @@ export default function HomeScreen({ navigation }: Props) {
 
   const { clearToken, customerName } = useAuthStore();
 
-  const { data, isLoading: isTransactionLoading, isFetching } = useTransactions(page);
+  const {
+    data,
+    isLoading: isTransactionLoading,
+    isFetching,
+  } = useTransactions(page);
 
   const { data: account, isLoading: isAccountLoading } = useAccount();
-
 
   useEffect(() => {
     if (!data) return;
@@ -109,18 +112,20 @@ export default function HomeScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isAccountLoading || !account ?
+      {isAccountLoading || !account ? (
         <Text>Loading...</Text>
-      :
+      ) : (
         <BalanceCard account={account} />
-      }
-      
+      )}
+
       <TouchableOpacity
         style={styles.transferBtn}
         onPress={() => navigation.navigate('Transfer')}
       >
         <Text style={styles.transferText}>Transfer Money</Text>
       </TouchableOpacity>
+
+      <View style={styles.divider} />
 
       <Text style={styles.sectionTitle}>Recent Transactions</Text>
 
@@ -173,7 +178,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
   },
   transferBtn: {
     backgroundColor: '#0F52BA',
@@ -185,5 +190,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#ddd',
+    marginVertical: 10,
   },
 });

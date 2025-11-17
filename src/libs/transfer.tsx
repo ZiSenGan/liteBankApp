@@ -1,5 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   Alert,
@@ -47,9 +47,15 @@ export default function TransferScreen({ navigation }: Props) {
     },
   });
 
-  const { data: fromAccountList, isLoading } = useFromAccounts();
+  const { data: fromAccountList, isLoading, isFetching } = useFromAccounts();
 
-  if (isLoading) return <Text>Loading accounts...</Text>;
+  useEffect(() => {
+    if (isLoading || isFetching) {
+      showLoading();
+    } else {
+      hideLoading();
+    }
+  }, [isLoading, isFetching]);
 
   const onSubmit = async (data: FormData) => {
     const amt = parseFloat(data.amount);

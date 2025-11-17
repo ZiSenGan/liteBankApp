@@ -34,25 +34,28 @@ mock.onGet('/profile').reply(200, {
 
 const account: Account = {
   id: 1,
-  name: "Saving Account",
+  name: 'Saving Account',
   balance: 1250.75,
-  accountNo: "123456789",
+  accountNo: '123456789',
 };
 
 // Mock GET /account
-mock.onGet("/account").reply(200, account);
+mock.onGet('/account').reply(200, account);
 
 // Mock GET /accounts/from
-mock.onGet("/accounts/from").reply(200, [account]);
-
+mock.onGet('/accounts/from').reply(200, [account]);
 
 const transactions: Transaction[] = Array.from({ length: 45 }).map(
-  (_, index) => ({
-    id: index + 1,
-    title: `Transaction #${index + 1}`,
-    amount: Math.random() * 100,
-    date: Date.now().toString(),
-  }),
+  (_, index) => {
+    const amount = (Math.random() * 100).toFixed(2);
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    return {
+      id: index + 1,
+      title: `Transaction #${index + 1}`,
+      amount: Number(amount) * sign, // apply sign
+      date: Date.now().toString(),
+    };
+  },
 );
 
 mock.onGet('/transactions').reply(config => {
