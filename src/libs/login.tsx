@@ -16,6 +16,7 @@ import {
 import { RootStackParamList } from "../types";
 import api from "../services/axios";
 import { showLoading, hideLoading } from '../components/LoadingScreen';
+import { useAuthStore } from "../store/useAuthStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -23,20 +24,30 @@ export default function Login({ navigation }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const {
+    setToken,
+  } = useAuthStore();
+
   const onSubmit = async () => {
     showLoading();
     try {
-      const res = await api.post("/login", {username: username, password: password});
-      if (res.data) {
-        console.log("Login success:", res.data);
-        navigation.navigate("Home");
-      }
-    } catch (error) {
-      console.error("Login failed:", error);
+      const res = await api.post("/login", {
+        username,
+        password
+      });
+
+      setToken(res.data.token);
+
+      console.log("Login success:", res.data);
+      navigation.navigate("Home");
+
+    } catch (err) {
+      console.error("Login failed:", err);
     } finally {
       hideLoading();
     }
   };
+
   
 
   return (
@@ -87,7 +98,7 @@ export default function Login({ navigation }: Props) {
           <TouchableOpacity
             style={styles.button}
             onPress={onSubmit}
-            // disabled={password === "" && username === ""}
+            disabled={password === "" && username === ""}
           >
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>

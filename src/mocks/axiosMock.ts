@@ -1,68 +1,53 @@
-// src/mocks/axiosMock.ts
-import axios, { AxiosRequestConfig } from "axios";
+import MockAdapter from "axios-mock-adapter";
+import api from "../services/axios";
+import { Transaction } from "../types";
 
-// Define your mocked endpoints
-type MockResponse = {
-  status: number;
-  data: any;
-};
+const mock = new MockAdapter(api, { delayResponse: 500 });
 
-type MockRoute = {
-  matcher: (config: AxiosRequestConfig) => boolean;
-  response: MockResponse | ((config: AxiosRequestConfig) => MockResponse | Promise<MockResponse>);
-};
+// Mock: POST /login
+mock.onPost("/login").reply(config => {
+  const body = JSON.parse(config.data);
 
-// Example routes
-const routes: MockRoute[] = [
-  {
-    matcher: config => (config.url?.endsWith("/login") ?? false) && config.method === "post",
-    response: async config => ({
-      status: 200,
-      data: { token: "mocked_token_123", user: { name: "John Doe" } },
-    }),
-  },
-  {
-    matcher: config => (config.url?.endsWith("/accounts") ?? false) && config.method === "get",
-    response: {
-      status: 200,
-      data: [
-        { id: 1, name: "Main Account" },
-        { id: 2, name: "Savings Account" },
-      ],
+  if (body.username === "admin" && body.password === "123") {
+    return [200, { token: "mock-token-123" }];
+  }
+
+  return [401, { message: "Invalid credentials" }];
+});
+
+
+mock.onGet("/profile").reply(200, {
+  id: 1,
+  name: "Mock User",
+  email: "mock@example.com",
+});
+
+const transactions = Array.from({ length: 45 }).map((_, index) => ({
+  id: index + 1,
+  title: `Transaction #${index + 1}`,
+  amount: (Math.random() * 100).toFixed(2),
+  date: Date.now(),
+}));
+
+mock.onGet("/transactions").reply((config) => {
+  // page & pageSize from your frontend request
+  const page = Number(config.params?.page ?? 1);
+  const pageSize = Number(config.params?.pageSize ?? 10);
+
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+
+  return [
+    200,
+    {
+      page,
+      pageSize,
+      total: transactions.length,
+      data: transactions.slice(start, end),
+      hasMore: end < transactions.length,
     },
-  },
-  {
-    matcher: config => (config.url?.endsWith("/transactions") ?? false) && config.method === "get",
-    response: {
-      status: 200,
-      data: [
-        { id: 101, amount: 100, type: "debit" },
-        { id: 102, amount: 50, type: "credit" },
-      ],
-    },
-  },
-];
+  ];
+});
 
-// Setup interceptor
-export const setupAxiosMock = () => {
-  axios.interceptors.request.use(async config => {
-    const route = routes.find(r => r.matcher(config));
 
-    if (route) {
-      const res = typeof route.response === "function" ? await route.response(config) : route.response;
-
-      return {
-        ...config,
-        adapter: async () => ({
-          data: res.data,
-          status: res.status,
-          statusText: "OK",
-          headers: {},
-          config,
-        }),
-      };
-    }
-
-    return config;
-  });
-};
+export default mock;

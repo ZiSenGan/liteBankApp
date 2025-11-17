@@ -1,7 +1,8 @@
 import { CommonActions, useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   BackHandler,
   FlatList,
@@ -13,12 +14,38 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import BalanceCard from "../components/BalanceCard";
 import TransactionItem from "../components/TransactionItems";
-import { account, transactions } from "../data/mockData";
-import { RootStackParamList } from "../types";
+import { account } from "../data/mockData";
+import { RootStackParamList, Transaction } from "../types";
+import { useTransactions } from "../services/useTransactions";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export default function HomeScreen({ navigation }: Props) {
+
+  const [items, setItems] = useState<Transaction[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+
+  const { data, isLoading, isFetching } = useTransactions(page);
+
+  useEffect(() => {
+    if (!data) return;
+
+    // Append new items
+    setItems(prev => [...prev, ...data.data]);
+
+    // Check if there are more pages
+    const maxPage = Math.ceil(data.total / data.pageSize);
+    if (page >= maxPage) setHasMore(false);
+  }, [data]);
+
+  const loadMore = () => {
+    if (isFetching || !hasMore) return;
+    setPage(prev => prev + 1);
+  };
+
+  
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -86,11 +113,23 @@ export default function HomeScreen({ navigation }: Props) {
 
       <Text style={styles.sectionTitle}>Recent Transactions</Text>
 
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <TransactionItem item={item} />}
-      />
+      {isLoading ? (
+        <Text>Loading...</Text>
+      ) : (
+        <>
+          <FlatList
+            data={items}
+            renderItem={({ item }) => <TransactionItem item={item} />}
+            keyExtractor={(item, index) => index.toString()}
+
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5} 
+            ListFooterComponent={loading ? <ActivityIndicator /> : null}
+          />
+
+          {isFetching && <Text>Loading next page...</Text>}
+        </>
+      )}
     </SafeAreaView>
   );
 }

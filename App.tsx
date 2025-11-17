@@ -5,19 +5,25 @@ import Login from './src/libs/login';
 import TransferScreen from './src/libs/transfer';
 import { RootStackParamList } from './src/types';
 import { Loading } from './src/components/LoadingScreen';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+const queryClient = new QueryClient();
+
+
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName='Login'>
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="Transfer" component={TransferScreen} options={{ headerShown: false }} />
-      </Stack.Navigator>
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName='Login'>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="Transfer" component={TransferScreen} options={{ headerShown: false }} />
+        </Stack.Navigator>
 
-      <Loading />
-    </NavigationContainer>
+        <Loading />
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 }
